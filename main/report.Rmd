@@ -2,15 +2,43 @@
 title: "Data Visualization"
 author: "Cody, Max, Priya, and Mohammed"
 output:
-  pdf_document: default
   html_document:
     fig_caption: yes
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning = F,
                       message = F)
 ```
+
+Introduction
+
+Baseball, sometimes referred to as the Great American Pastime, is one of the most popular sports in America. There is an immense amount of baseball data freely available for analysis and is effectively a statistician’s playground. 
+
+We chose the topic of baseball for our final project for a few reasons. One of our group members is involved in fantasy baseball, and we thought that exploring baseball data in-depth would probably help him in future fantasy bracket player selections. We also hoped that this analysis, or a similar analysis, would be potentially applicable to other sports including but not limited to basketball and American football. Lastly we wanted to get insight into a core element of American pop culture, and look into some interesting questions such as steroid use. We had a lot of questions that we thought of, and have listed these below:
+
+Are there any obvious trends between pitching volume and effort in a given year and injuries in the next year?
+*How severe are different kinds of injuries to a baseball player’s career?
+*Are pitchers who throw different kinds of pitches more susceptible to getting injured? Do certain kinds of pitches lead to different kinds of injuries?
+*How do different kinds of injuries affect hitting power?
+*How does likelihood of future injury change with different kinds of injuries?
+*How did a ball manufacturing change affect number of home runs?
+*How may a robot umpire affect the strike zone?
+
+Our group members are:
+*Cody Zupnick - data collection, plotting, and report writing
+*Mohammad Radiyat - plotting and report writing
+*Priya Medberry - 
+*Max Mattioli - data quality analysis and report writing
+
+Description of data: 
+
+The data was collected from a few different sources. Pitcher data was collected from the following [link.](www.fangraphs.com%2Fleaders.aspx%3Fpos%3Dall%26stats%3Dpit%26lg%3Dall%26qual%3Dy%26type%3Dc%252C3%252C31%252C125%252C126%252C127%252C128%252C130%252C131%252C132%252C133%252C135%252C139%252C13%26season%3D2017%26month%3D0%26season1%3D2017%26ind%3D0%26team%3D%26rost%3D%26age%3D%26filter%3D%26players%3D&h=ATM_yMkJmnVUTRMPwJ4QLEVH8tYNAjxgBIYrmH6RqQIzYc_-MeKG_silRZlJQeofqEGo32CC01V4zqagZT4DPi5eIgG67J__srp7yg) The batter data was collected from [here.](www.fangraphs.com%2Fleaders.aspx%3Fpos%3Dall%26stats%3Dbat%26lg%3Dall%26qual%3Dy%26type%3D8%26season%3D2017%26month%3D0%26season1%3D2017%26ind%3D0%26team%3D0%26rost%3D0%26age%3D0%26filter%3D%26players%3D0&h=ATM_yMkJmnVUTRMPwJ4QLEVH8tYNAjxgBIYrmH6RqQIzYc_-MeKG_silRZlJQeofqEGo32CC01V4zqagZT4DPi5eIgG67J__srp7yg)
+
+The injury data was the most difficult to collect. Injury data was obtained via scraping, and the scripts to do so can be found at this Github [link.](https://github.com/Codyz/edavFinalProject/tree/master/scrape)
+
+
 
 ```{r, cache=T}
 # Install all necessary packages
@@ -19,7 +47,6 @@ library(tidyverse)
 library(ggplot2)
 library(zoo)
 ```
-
 
 **Part 1: Pitching Volume, Effort, and Injuries**
 
@@ -70,7 +97,7 @@ joined_pitchers <- mutate(group_by(joined_pitchers, type), cnt = n())
 joined_pitchers <- filter(joined_pitchers, cnt >= 10)
 ```
 
-```{r, fig.height=10, fig.width=20}
+```{r}
 ggplot(joined_pitchers, aes(x=type, y=Pitches)) + geom_jitter() + coord_flip()
 ggplot(joined_pitchers, aes(x=type, y=vFA)) + geom_jitter() + coord_flip()
 ```
