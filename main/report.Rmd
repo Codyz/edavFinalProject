@@ -12,33 +12,69 @@ knitr::opts_chunk$set(warning = F,
                       message = F)
 ```
 
-Introduction
+# Introduction
 
 Baseball, sometimes referred to as the Great American Pastime, is one of the most popular sports in America. There is an immense amount of baseball data freely available for analysis and is effectively a statistician’s playground. 
 
 We chose the topic of baseball for our final project for a few reasons. One of our group members is involved in fantasy baseball, and we thought that exploring baseball data in-depth would probably help him in future fantasy bracket player selections. We also hoped that this analysis, or a similar analysis, would be potentially applicable to other sports including but not limited to basketball and American football. Lastly we wanted to get insight into a core element of American pop culture, and look into some interesting questions such as steroid use. We had a lot of questions that we thought of, and have listed these below:
 
 Are there any obvious trends between pitching volume and effort in a given year and injuries in the next year?
-*How severe are different kinds of injuries to a baseball player’s career?
-*Are pitchers who throw different kinds of pitches more susceptible to getting injured? Do certain kinds of pitches lead to different kinds of injuries?
-*How do different kinds of injuries affect hitting power?
-*How does likelihood of future injury change with different kinds of injuries?
-*How did a ball manufacturing change affect number of home runs?
-*How may a robot umpire affect the strike zone?
+* How severe are different kinds of injuries to a baseball player’s career?
+* Are pitchers who throw different kinds of pitches more susceptible to getting injured? Do certain kinds of pitches lead to different kinds of injuries?
+* How do different kinds of injuries affect hitting power?
+* How does likelihood of future injury change with different kinds of injuries?
+* How did a ball manufacturing change affect number of home runs?
+* How may a robot umpire affect the strike zone?
 
 Our group members are:
-*Cody Zupnick - data collection, plotting, and report writing
-*Mohammad Radiyat - plotting and report writing
-*Priya Medberry - 
-*Max Mattioli - data quality analysis and report writing
+* Cody Zupnick - data collection, plotting, and report writing
+* Mohammad Radiyat - plotting and report writing
+* Priya Medberry - 
+* Max Mattioli - data quality analysis and report writing
 
-Description of data: 
+# Description of data: 
 
 The data was collected from a few different sources. Pitcher data was collected from the following [link.](www.fangraphs.com%2Fleaders.aspx%3Fpos%3Dall%26stats%3Dpit%26lg%3Dall%26qual%3Dy%26type%3Dc%252C3%252C31%252C125%252C126%252C127%252C128%252C130%252C131%252C132%252C133%252C135%252C139%252C13%26season%3D2017%26month%3D0%26season1%3D2017%26ind%3D0%26team%3D%26rost%3D%26age%3D%26filter%3D%26players%3D&h=ATM_yMkJmnVUTRMPwJ4QLEVH8tYNAjxgBIYrmH6RqQIzYc_-MeKG_silRZlJQeofqEGo32CC01V4zqagZT4DPi5eIgG67J__srp7yg) The batter data was collected from [here.](www.fangraphs.com%2Fleaders.aspx%3Fpos%3Dall%26stats%3Dbat%26lg%3Dall%26qual%3Dy%26type%3D8%26season%3D2017%26month%3D0%26season1%3D2017%26ind%3D0%26team%3D0%26rost%3D0%26age%3D0%26filter%3D%26players%3D0&h=ATM_yMkJmnVUTRMPwJ4QLEVH8tYNAjxgBIYrmH6RqQIzYc_-MeKG_silRZlJQeofqEGo32CC01V4zqagZT4DPi5eIgG67J__srp7yg)
 
 The injury data was the most difficult to collect. Injury data was obtained via scraping, and the scripts to do so can be found at this Github [link.](https://github.com/Codyz/edavFinalProject/tree/master/scrape)
 
+We can look at a quick summary of the three kinds of raw data files that we'll be using. First we begin with pitch data:
+```{r}
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(zoo)
+pitches_2015 <- read_csv('./data/Pitchers2015.csv')
+head(pitches_2015)
+```
+The first few columns are player name, what team the player is on, player age as of 2015, and total number of pitches in the 2015 season. The next columns (all of which end in %) represent how frequently the player threw a certain kind of pitch. For example, Dalier Hinojosa threw 429 pitches in 2015, 20.20% of which were *FA* (which stands for normal fastballs) and 43.80% of which were *FT* (which stands for two-seam fastballs). The different kinds of pitches and their code are outlined below:
+* FA = normal (four-seam) fastball that goes straight and fast
+* FT = two-seam fastball, which is similar to a normal fastball but has a little more movement
+* FC = cutter, which is designed to shift a little bit when it gets close to home plate (or near where the batter is standing)
+* FS = splitter, which breaks down suddenly near home plate
+* SI = sinker, which has significant horizintal and downward movement
+* SL = slider, which breaks down and away near home plate
+* CU = curveball, where the ball has enough forward spin to dive downwards as it reaches home plate. 
+* KC = knuckle curve, which is a variant of the curveball that spins less than a normal curveball
+* CH = changeup, which is a slow throw that looks like it's a normal fastball; used to throw off the batter's swing timing
+The last few columns are *vFA* which is average fastball speed, and *IP* which is number of innings pitched. Note that innings pitched are not integers because pitchers can substitute within innings. 
 
+Next we can look at an example of the injury data:
+```{r}
+injuries_2016 <- read_csv('./data/injuries_2016.csv')
+head(injuries_2016)
+```
+The data includes the player, their position, kind of injury, and how long that injury lasted in days. Lastly we can look at an example of our raw batter data:
+```{r}
+df2014 <- read_csv('./data/batters2014.csv')
+head(df2014)
+```
+This data includes player name, team, and several yearly metrics. For more info on these metrics, feel free to read this [documentation](http://www.baseball-almanac.com/stats4.shtml). The quantities that are of import to us are 
+# Analysis of Data Quality
+
+#Main Analysis
+
+We start by importing the necessary libraries for data processing and plotting:
 
 ```{r, cache=T}
 # Install all necessary packages
@@ -50,15 +86,20 @@ library(zoo)
 
 **Part 1: Pitching Volume, Effort, and Injuries**
 
-Here we're going to take a look to see if any obvious trends can be seen between pitching volume in year N and injuries in year N+1. Our metrics of volume are seasonal pitch counts, pitches per game, and innings pitched per season. Our basic metric of effort is fastball velocity. All of these are imperfect metrics; a stronger pitcher can throw harder with less effort than a weaker one, for instance, and not all pitches are equally strenuous. But this is a good starting points. Another consideration we're not immediately considering is age. We'll take a look at this later, because we expect it to be very important, since older players get injured more frequently than younger ones. 
+First we look at whether there exist any obvious trends can be seen between pitching volume in a given year and injuries in the following year. Our metrics of volume are seasonal pitch counts, pitches per game, and innings pitched per season. Our basic metric of effort is fastball velocity. All of these are imperfect metrics; a stronger pitcher can throw harder with less effort than a weaker one, for instance, and not all pitches are equally strenuous. But this is a good starting point. 
 
+For now we are not considering age, which we expect to be very important, since older players should get injured more frequently than younger ones. 
+
+We import the data into R objects:
 ```{r}
 pitches_2015 <- read_csv('./data/Pitchers2015.csv')
 injuries_2016 <- read_csv('./data/injuries_2016.csv')
 
 pitches_2016 <- read_csv('./data/Pitchers2016.csv')
 injuries_2017 <- read_csv('./data/injuries_2017.csv')
-
+```
+We combine the different data frames together:
+```{r}
 # join each year before concatting them
 joined1 <- merge(injuries_2016, pitches_2015, by.x = "name", by.y = "name", all.y = T)
 joined1$year <- '2016'
@@ -69,11 +110,13 @@ joined2$year <- '2017'
 joined <- rbind(joined1, joined2)
 
 joined_pitchers <- filter(joined, pos == "RP" | pos == "SP")
-
-# if a player has multiple injuries, encoded as Injury1/Injury2/... First is most serious, so just consider that
+```
+Some players are listed with multiple injuries, encoded as Injury1/Injury2/... In those cases the first injury is the most serious, so we will only consider the first listed injury per player for this analysis:
+```{r}
 extract_injury <- function(val) { strsplit(val, "/")[[1]][[1]] }
-
-# clean up the data
+```
+Lastly we clean up the data, remove missing values and pitchers who never threw a pitch, and consider only injuries that at least ten players suffered. This makes the analysis cleaner, but inherently throws away information about rare injuries which might be valuable at some future point. 
+```{r}
 # @param df pitch dataframe joined with injury data
 clean <- function(df) {
   percent_cols <- colnames(df)[8:16]
@@ -90,34 +133,35 @@ clean <- function(df) {
   df
 }
 
-# lastly, let's only consider injury types suffered by at least 10 players
 joined <- clean(joined)
 joined_pitchers <- clean(joined_pitchers)
 joined_pitchers <- mutate(group_by(joined_pitchers, type), cnt = n())
 joined_pitchers <- filter(joined_pitchers, cnt >= 10)
 ```
-
+Now we plot number of pitches versus injury type and average fast ball throw speed versus injury type:
 ```{r}
 ggplot(joined_pitchers, aes(x=type, y=Pitches)) + geom_jitter() + coord_flip()
 ggplot(joined_pitchers, aes(x=type, y=vFA)) + geom_jitter() + coord_flip()
 ```
 
-So this doesn't really look like anything. A very common thought is that high pitch total pitch volumes lead to injuries, but we can't see it over the course of one season, or it's being
-swamped by other factors. Again, nothing obvious jumps out. 
+Not much jumps out in the scatterplots. It is conventional wisdom that high pitch total pitch volumes lead to injuries, but this expected result is either not visible over the course of one season or it's being swamped by other factors. There does seem to be a little bit of clustering of shoulder injuries at high pitch volume (around 3000 pitches in one season), implying that players who throw more pitches are more susceptible to shoulder injuries. 
 
 ##Injury Type
 
-Let's take a quick look at how severe differnt injuries are, across all players in season.
+As a measure of injury severity, we look at how many days each injury lasted in the data for 2016 and 2017. We use both boxplots and scatterplots. 
 
 ```{r}
-ggplot(filter(joined, days < 180), aes(x=type, y=days)) + geom_jitter() + coord_flip()
+ggplot(filter(joined, days < 180), aes(x=reorder(type, days, FUN = median), y=days)) + geom_boxplot() + coord_flip()
+ggplot(filter(joined, days < 180), aes(x=reorder(type, days, FUN = median), y=days)) + geom_jitter() + coord_flip()
 ```
-Shoulder, arm, and elbow injuries look bad. More important than the mean values, we can see that pitching injuries are the most common, The densest clusters are for shoulder, elbow, arm, and back.
+By using median days values, the most severe injuries seem to be elbow Tommy John injuries, bicep injuries, and toe injuries. Elbow Tommy John injuries being the highest on this list makes sense. This kind of injury refers to a special elbow injury that involves a torn UCL, which is an extremely important elbow ligament.  
 
+The median injury length values may be important, but arguably more important is frequency of injuries. The scatterplot indicates that injuries pitching injuries (shoulder, elbow, and arm) are among the most frequent. 
 
 ## Types of Pitches And Injuries
-Are pitchers who throw certain types of pitches more susceptible to getting injured? And do certain kinds of pitches lead to different types of injuries? This has been a holy grail of baseball research, and it's still hotly debated, so we won't settle anything without modeling, but maybe we can see something.  
+Since it seems that pitching injuries are quite frequent, it may be worth exploring pitching injuries in-depth. We look at whether players who throw certain types of pitches are more susceptible to getting injured, and whether certain kinds of pitches lead to specific types on injuries. This has been a holy grail of baseball research and is still hotly debated. While it is unlikely that anything will be settled without modeling, some trends may be visible using exploratory analysis. 
 
+First we 
 ```{r}
 percent_cols <- colnames(joined)[8:16]
 # tidy the data so we can facet on pitch types
