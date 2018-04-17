@@ -1,0 +1,223 @@
+---
+title: "Data Visualization"
+author: "Cody, Max, Priya, and Mohammed"
+output:
+  pdf_document: default
+  html_document:
+    fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = F,
+                      message = F)
+```
+
+```{r, cache=T}
+# Install all necessary packages
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(zoo)
+```
+
+
+**Part 1: Pitching Volume, Effort, and Injuries**
+
+Here we're going to take a look to see if any obvious trends can be seen between pitching volume in year N and injuries in year N+1. Our metrics of volume are seasonal pitch counts, pitches per game, and innings pitched per season. Our basic metric of effort is fastball velocity. All of these are imperfect metrics; a stronger pitcher can throw harder with less effort than a weaker one, for instance, and not all pitches are equally strenuous. But this is a good starting points. Another consideration we're not immediately considering is age. We'll take a look at this later, because we expect it to be very important, since older players get injured more frequently than younger ones. 
+
+```{r}
+pitches_2015 <- read_csv('./data/Pitchers2015.csv')
+injuries_2016 <- read_csv('./data/injuries_2016.csv')
+
+pitches_2016 <- read_csv('./data/Pitchers2016.csv')
+injuries_2017 <- read_csv('./data/injuries_2017.csv')
+
+# join each year before concatting them
+joined1 <- merge(injuries_2016, pitches_2015, by.x = "name", by.y = "name", all.y = T)
+joined1$year <- '2016'
+
+joined2 <- merge(injuries_2017, pitches_2016, by.x = "name", by.y = "name", all.y = T)
+joined2$year <- '2017'
+
+joined <- rbind(joined1, joined2)
+
+joined_pitchers <- filter(joined, pos == "RP" | pos == "SP")
+
+# if a player has multiple injuries, encoded as Injury1/Injury2/... First is most serious, so just consider that
+extract_injury <- function(val) { strsplit(val, "/")[[1]][[1]] }
+
+# clean up the data
+# @param df pitch dataframe joined with injury data
+clean <- function(df) {
+  percent_cols <- colnames(df)[8:16]
+  f <- function(val) { sub("%", "", val) }
+  df[percent_cols] <- sapply(df[percent_cols], f)
+  df[percent_cols] <- sapply(df[percent_cols], as.numeric)
+  # if a pitcher never throws a pitch
+  df[percent_cols][is.na(df[percent_cols])] <- 0
+  df$type[is.na(df$type)] <- "None"
+  df$days[is.na(df$days)] <- 0
+
+  df$type <- sapply(df$type, extract_injury)
+  
+  df
+}
+
+# lastly, let's only consider injury types suffered by at least 10 players
+joined <- clean(joined)
+joined_pitchers <- clean(joined_pitchers)
+joined_pitchers <- mutate(group_by(joined_pitchers, type), cnt = n())
+joined_pitchers <- filter(joined_pitchers, cnt >= 10)
+```
+
+```{r, fig.height=1, fig.width=2}
+ggplot(joined_pitchers, aes(x=type, y=Pitches)) + geom_jitter() + coord_flip()
+ggplot(joined_pitchers, aes(x=type, y=vFA)) + geom_jitter() + coord_flip()
+```
+
+So this doesn't really look like anything. A very common thought is that high pitch total pitch volumes lead to injuries, but we can't see it over the course of one season, or it's being
+swamped by other factors. Again, nothing obvious jumps out. 
+
+##Injury Type
+
+Let's take a quick look at how severe differnt injuries are, across all players in season.
+
+```{r}
+ggplot(filter(joined, days < 180), aes(x=type, y=days)) + geom_jitter() + coord_flip()
+```
+Shoulder, arm, and elbow injuries look bad. More important than the mean values, we can see that pitching injuries are the most common, The densest clusters are for shoulder, elbow, arm, and back.
+
+
+## Types of Pitches And Injuries
+Are pitchers who throw certain types of pitches more susceptible to getting injured? And do certain kinds of pitches lead to different types of injuries? This has been a holy grail of baseball research, and it's still hotly debated, so we won't settle anything without modeling, but maybe we can see something.  
+
+```{r, fig.height=1, fig.width=3.5}
+percent_cols <- colnames(joined)[8:16]
+# we want Fastball percentage first
+# tidy the data so we can facet on pitch types
+g <- gather(filter(joined_pitchers), pt, pt_pct, percent_cols)
+levels(g$pt) <- percent_cols
+g <- arrange(g, pt)
+ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", width = 0.5) + theme(axis.text.x = element_text(angle=30))
+```
+TODO: Can't figure out how to order the fill factors. Want fastballs at the bottom, hard to see what's going on. 
+
+\newpage
+
+
+**Part2: How Do Injuries Effect Power?**
+
+Presumably some kinds of injuries hurt hitters more than others. We're going to take a look at how different kinds of injuries effect power performance. Because we're interested in the long
+term effects of injuries, we're going to be looking at a one year lag, *ignoring* the season in which the player was injured. We're going to look at season before and seasons after the injury.
+
+```{r}
+# Prepare the data
+injuries2015 <- read_csv('./data/injuries_2015.csv')
+injuries2016 <- read_csv('./data/injuries_2016.csv')
+
+df2014 <- read_csv('./data/batters2014.csv')
+df2015 <- read_csv('./data/batters2015.csv')
+df2016 <- read_csv('./data/batters2016.csv')
+df2017 <- read_csv('./data/batters2017.csv')
+
+df2014$year <- 2014
+df2015$year <- 2015
+df2016$year <- 2016
+df2017$year <- 2017
+
+# tidy the data for a three year period
+process <- function(data, injuries) {
+  # we only want players who played in each season, and batted at least 150 times in 2015/2017
+  data <- mutate(group_by(data, name), cnt = n())
+  first_yr <- min(data$year)
+  third_yr <- max(data$year)
+  scnd_year <- (first_yr + third_yr) / 2
+  data <- filter(data, cnt == 3 & year != scnd_year)
+  # tidy till before and after
+  data <- mutate(data, occ = if_else(year == first_yr, "before", "after"))
+  data <- data %>% select(name, occ, SLG)
+  data <- spread(data, occ, SLG)
+  # merge the injuries
+  data <- merge(data, injuries, by.x = "name", by.y = "name", all.x = T)
+  data$type[is.na(data$type)] <- "None"
+  data$type <- sapply(data$type, extract_injury)
+  data
+}
+
+bat1 <- rbind(df2015, df2016, df2017)
+bat2 <- rbind(df2014, df2015, df2016)
+
+bat1 <- process(bat1, injuries2016)
+bat2 <- process(bat2, injuries2015)
+
+bat <- rbind(bat1, bat2)
+```
+
+```{r}
+ggplot(bat, aes(before, after)) + geom_point(aes(color = type))
+```
+
+It's hard to see much. Let's try a bar chart, plotting the ratios of before/after.
+```{r}
+bat <- mutate(bat, chng = before / after)
+ggplot(bat) + geom_bar(aes(x = type, y = chng), stat="summary") + stat_summary(aes(x = type, y = chng), fun.y = "mean") + coord_flip()
+```
+
+Now it's possible to see some patterns emerge. Lower body injuries seem to have the largest effect on power; ACL tears, knee injuries, toe injuries, hip, and calf injuries have the largest decreases. This makes intuitive sense, since a lot of hitting is putting your lower half into the swing. But some of this is non-obvious; we wouldn't have expected a toe injury to have a larger effect on how hard a player
+hits the ball than a wrist injury. Of course this is only four seasons of data, and we'd want to revisit this on larger datasets. But the lower body/upper body difference seems strong.  
+
+
+**Part 3: How Well Do Injuries Predict Future Injuries?**
+
+```{r}
+# process injury data
+i1 <- read_csv('./data/injuries_2015.csv')
+i2 <- read_csv('./data/injuries_2016.csv')
+i3 <- read_csv('./data/injuries_2017.csv')
+
+i1$year = 2015
+i2$year = 2016
+i3$year = 2017
+
+iAll <- rbind(i1, i2, i3)
+iAll <- arrange(iAll, name, year)
+iAll <- mutate(group_by(iAll, name), cnt = n())
+# data <- mutate(data, occ = if_else(year == first_yr, "before", "after"))
+iAll <- iAll %>% mutate(was_followed = if_else(cnt > 1 & year != 2017, 1, 0))
+# remove 2017
+iAll <- filter(iAll, year != 2017)
+iAll$type <- sapply(iAll$type, extract_injury)
+iAll <- iAll %>% group_by(type, was_followed) %>%
+          summarise(num_i = n()) %>%
+          mutate(prop = num_i / sum(num_i))
+```
+
+```{r, fig.width = 3}
+# 2-D Mosaic Plot/Stacked bar chart
+iAll <- iAll %>% mutate(followed = if_else(was_followed == 0, "No", "Yes"))
+ggplot(iAll, aes(x = type, y = prop, fill = followed)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle=90))
+```
+
+The numbers aren't huge, since finding injury data back more than a few years is difficult, but it definitely looks like some injuries are more predictive of future injuries. With a larger dataset, we could
+investigate if certain types of injuries predict *which* future injuries, but our slices would be too small for just three years. 
+
+
+**Part 4: Did the Ball Change in the Middle of 2015?**
+First, let's just establish that home runs *did* increase.
+
+```{r}
+## structure the data so that months are orderd included, in the date
+hr <- read_csv('./data/homeRuns.csv')
+# just make Mar/April April and Sep/Oct September
+hr$Month[hr$Month == 'Mar/Apr'] <- 'Apr'
+hr$Month[hr$Month == 'Sept/Oct'] <- 'Sep'
+# zoo parser is much better
+hr$Date <- as.yearmon(paste0(hr$Season, hr$Month), "%Y%b")
+hr$Date <- as.Date(hr$Date)
+```
+```{r}
+ggplot(hr, aes(Date, y = HR)) + geom_line() + scale_x_date(labels = as.Date(hr$Date))
+```
+
+**Part 5: How Might Robot Umpires Effect The Strike Zone?**
+

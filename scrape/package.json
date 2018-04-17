@@ -1,0 +1,22 @@
+{
+  "name": "finalProject",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "lodash": "X.X.X",
+    "moment": "2.0.0",
+    "babyparse": "0.4.3",
+    "cli-table2": "X.X.X",
+    "cheerio": "X.X.X",
+    "cheerio-tableparser": "1.0.1",
+    "tabletojson": "0.4.0",
+    "request": "X.X.X",
+    "async": "X.X.X"
+  },
+  "scripts": {
+    "test": "mocha --timeout 10000 --recursive"
+  },
+  "author": "cz",
+  "license": "ISC"
+}
