@@ -70,7 +70,7 @@ joined_pitchers <- mutate(group_by(joined_pitchers, type), cnt = n())
 joined_pitchers <- filter(joined_pitchers, cnt >= 10)
 ```
 
-```{r, fig.height=1, fig.width=2}
+```{r, fig.height=10, fig.width=20}
 ggplot(joined_pitchers, aes(x=type, y=Pitches)) + geom_jitter() + coord_flip()
 ggplot(joined_pitchers, aes(x=type, y=vFA)) + geom_jitter() + coord_flip()
 ```
@@ -91,17 +91,21 @@ Shoulder, arm, and elbow injuries look bad. More important than the mean values,
 ## Types of Pitches And Injuries
 Are pitchers who throw certain types of pitches more susceptible to getting injured? And do certain kinds of pitches lead to different types of injuries? This has been a holy grail of baseball research, and it's still hotly debated, so we won't settle anything without modeling, but maybe we can see something.  
 
-```{r, fig.height=1, fig.width=3.5}
+```{r}
 percent_cols <- colnames(joined)[8:16]
-# we want Fastball percentage first
 # tidy the data so we can facet on pitch types
 g <- gather(filter(joined_pitchers), pt, pt_pct, percent_cols)
 levels(g$pt) <- percent_cols
 g <- arrange(g, pt)
-ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", width = 0.5) + theme(axis.text.x = element_text(angle=30))
-```
-TODO: Can't figure out how to order the fill factors. Want fastballs at the bottom, hard to see what's going on. 
+ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30))
 
+percent_cols_no_FA <- colnames(joined)[9:16]
+# tidy the data so we can facet on pitch types
+g <- gather(filter(joined_pitchers), pt, pt_pct, percent_cols_no_FA)
+levels(g$pt) <- percent_cols_no_FA
+g <- arrange(g, pt)
+ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30))
+```
 \newpage
 
 
@@ -192,7 +196,7 @@ iAll <- iAll %>% group_by(type, was_followed) %>%
           mutate(prop = num_i / sum(num_i))
 ```
 
-```{r, fig.width = 3}
+```{r}
 # 2-D Mosaic Plot/Stacked bar chart
 iAll <- iAll %>% mutate(followed = if_else(was_followed == 0, "No", "Yes"))
 ggplot(iAll, aes(x = type, y = prop, fill = followed)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle=90))
