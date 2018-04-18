@@ -69,7 +69,7 @@ The data includes the player, their position, kind of injury, and how long that 
 df2014 <- read_csv('./data/batters2014.csv')
 head(df2014)
 ```
-This data includes player name, team, and several yearly metrics. For more info on these metrics, feel free to read this [documentation](http://www.baseball-almanac.com/stats4.shtml). The quantities that are of import to us are 
+This data includes player name, team, and several yearly metrics. For more info on these metrics, feel free to read this [documentation](http://www.baseball-almanac.com/stats4.shtml). The important quantity for us is *SLG*, or slugging percentage which is average number of bases a player earns per at-bat. Each time a player bats, he either hits or does not hit; on a hit, a player can get 1, 2, 3, or 4 bases (4 in the case of a home run). *SLG* captures total number of bases earned this way divided by total number of at-bats. 
 # Analysis of Data Quality
 
 #Main Analysis
@@ -98,7 +98,7 @@ injuries_2016 <- read_csv('./data/injuries_2016.csv')
 pitches_2016 <- read_csv('./data/Pitchers2016.csv')
 injuries_2017 <- read_csv('./data/injuries_2017.csv')
 ```
-We combine the different data frames together:
+We combine the injury and pitch data frames together:
 ```{r}
 # join each year before concatting them
 joined1 <- merge(injuries_2016, pitches_2015, by.x = "name", by.y = "name", all.y = T)
@@ -161,7 +161,7 @@ The median injury length values may be important, but arguably more important is
 ## Types of Pitches And Injuries
 Since it seems that pitching injuries are quite frequent, it may be worth exploring pitching injuries in-depth. We look at whether players who throw certain types of pitches are more susceptible to getting injured, and whether certain kinds of pitches lead to specific types on injuries. This has been a holy grail of baseball research and is still hotly debated. While it is unlikely that anything will be settled without modeling, some trends may be visible using exploratory analysis. 
 
-First we 
+First we filter out every column except the 9 pitch percentage columns and plot the various kinds of injuries vs average pitch type percentage across all players with those injuries:
 ```{r}
 percent_cols <- colnames(joined)[8:16]
 # tidy the data so we can facet on pitch types
@@ -169,24 +169,25 @@ g <- gather(filter(joined_pitchers), pt, pt_pct, percent_cols)
 levels(g$pt) <- percent_cols
 g <- arrange(g, pt)
 ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30))
-
+```
+Fastballs dominate too much to clearly see what's happening with the rest of the pitches, so let's filter fastballs out and repeat the analysis:
+```{r}
 percent_cols_no_FA <- colnames(joined)[9:16]
 # tidy the data so we can facet on pitch types
 g <- gather(filter(joined_pitchers), pt, pt_pct, percent_cols_no_FA)
 levels(g$pt) <- percent_cols_no_FA
 g <- arrange(g, pt)
-ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30))
+ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt, width=0.8)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30))
 ```
+Now, we see that players with finger injuries, oblique injuries, and hip injuries threw, on average, a higher percentage of two-seam fastballs than other pitches. For players who sustained all other injury types, the average percentage of sliders thrown was highest. 
 \newpage
 
 
 **Part2: How Do Injuries Effect Power?**
-
-Presumably some kinds of injuries hurt hitters more than others. We're going to take a look at how different kinds of injuries effect power performance. Because we're interested in the long
-term effects of injuries, we're going to be looking at a one year lag, *ignoring* the season in which the player was injured. We're going to look at season before and seasons after the injury.
-
+Now we will look at how different kinds of injuries affect hitters differently. Presumably some kinds of injuries hurt hitters more than others, and We will look at how different kinds of injuries affect power performance as measured by the aforementioned *SLG*. Because we're interested in the long
+term effects of injuries, we're going to be looking at a one year lag, *ignoring* the season in which the player was injured. For each player we look at he season before and seasons after the injury to look for changes. 
+First we prep the data:
 ```{r}
-# Prepare the data
 injuries2015 <- read_csv('./data/injuries_2015.csv')
 injuries2016 <- read_csv('./data/injuries_2016.csv')
 
@@ -199,8 +200,9 @@ df2014$year <- 2014
 df2015$year <- 2015
 df2016$year <- 2016
 df2017$year <- 2017
-
-# tidy the data for a three year period
+```
+Next we tidy the data for a three-year period and finalize the data into one data frame:
+```{r}
 process <- function(data, injuries) {
   # we only want players who played in each season, and batted at least 150 times in 2015/2017
   data <- mutate(group_by(data, name), cnt = n())
@@ -227,23 +229,22 @@ bat2 <- process(bat2, injuries2015)
 
 bat <- rbind(bat1, bat2)
 ```
-
+Lastly we use a scatterplot to plot *SLG* the year before injury vs *SLG* the year after injury colored by injury type:
 ```{r}
 ggplot(bat, aes(before, after)) + geom_point(aes(color = type))
 ```
 
-It's hard to see much. Let's try a bar chart, plotting the ratios of before/after.
+Immediately, it is quite difficult to see much of anything, so instead we try a bar chart, plotting the ratios of *SLG* before and *SLG* after injury. 
 ```{r}
 bat <- mutate(bat, chng = before / after)
 ggplot(bat) + geom_bar(aes(x = type, y = chng), stat="summary") + stat_summary(aes(x = type, y = chng), fun.y = "mean") + coord_flip()
 ```
 
-Now it's possible to see some patterns emerge. Lower body injuries seem to have the largest effect on power; ACL tears, knee injuries, toe injuries, hip, and calf injuries have the largest decreases. This makes intuitive sense, since a lot of hitting is putting your lower half into the swing. But some of this is non-obvious; we wouldn't have expected a toe injury to have a larger effect on how hard a player
-hits the ball than a wrist injury. Of course this is only four seasons of data, and we'd want to revisit this on larger datasets. But the lower body/upper body difference seems strong.  
-
+Now it's possible to see some patterns emerge. Lower body injuries seem to have the largest effect on power; ACL tears, knee injuries, toe injuries, hip, and calf injuries have the largest decreases in *SLG* the year after injury. This makes intuitive sense, since a large part of hitting involves building power from the lower half into the swing. However, some of the results are non-obvious; for example, it is remarkable that toe injuries have a larger effect on how hard a player
+hits the ball than wrist injuries. Of course this analysis uses only four seasons of data, and we'd want to revisit this on larger datasets. Nonetheless the lower body/upper body difference seems strong.  
 
 **Part 3: How Well Do Injuries Predict Future Injuries?**
-
+Our next question involves the extent to which different injuries suggest future susceptibility to more injury. We combine all the injury data into one dataframe, and plot a stacked bar chart to see what percentage of players who sustained an injury got injured again:
 ```{r}
 # process injury data
 i1 <- read_csv('./data/injuries_2015.csv')
@@ -265,19 +266,15 @@ iAll$type <- sapply(iAll$type, extract_injury)
 iAll <- iAll %>% group_by(type, was_followed) %>%
           summarise(num_i = n()) %>%
           mutate(prop = num_i / sum(num_i))
-```
 
-```{r}
-# 2-D Mosaic Plot/Stacked bar chart
 iAll <- iAll %>% mutate(followed = if_else(was_followed == 0, "No", "Yes"))
 ggplot(iAll, aes(x = type, y = prop, fill = followed)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle=90))
 ```
-
-The numbers aren't huge, since finding injury data back more than a few years is difficult, but it definitely looks like some injuries are more predictive of future injuries. With a larger dataset, we could
-investigate if certain types of injuries predict *which* future injuries, but our slices would be too small for just three years. 
+It seems that certain types on injuries are definitely more predictive of future injuries, but the caveat is that we don't have much data to work with. The numbers are not huge because finding injury data that goes back more than a few years is difficult. With a larger dataset, we could investigate if certain types of injuries could predict specific future injuries, but our slices would be too small for just three years of data.
 
 
 **Part 4: Did the Ball Change in the Middle of 2015?**
+
 First, let's just establish that home runs *did* increase.
 
 ```{r}
