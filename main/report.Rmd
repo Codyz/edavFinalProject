@@ -283,13 +283,40 @@ hr <- read_csv('./data/homeRuns.csv')
 # just make Mar/April April and Sep/Oct September
 hr$Month[hr$Month == 'Mar/Apr'] <- 'Apr'
 hr$Month[hr$Month == 'Sept/Oct'] <- 'Sep'
+hr$Month <- as.factor(hr$Month)
+levels(hr$Month) = c("Apr", "May", "Jun", "Jul", "Aug", "Sep")
 # zoo parser is much better
 hr$Date <- as.yearmon(paste0(hr$Season, hr$Month), "%Y%b")
 hr$Date <- as.Date(hr$Date)
 ```
 ```{r}
-ggplot(hr, aes(Date, y = HR)) + geom_line() + scale_x_date(labels = as.Date(hr$Date))
+label <- function(d) { format(d, "%b") }
+ggplot(hr, aes(x = Month, y = HR, color = as.character(Season), group = as.character(Season))) + 
+  geom_point() + geom_line() + 
+  labs(x = "month") + scale_color_discrete(name = "Season")
 ```
+So home runs per month are definitely up year over year. (This is necessary because fewer HRS are typically hit in colder weather, and certain months have fewer games and days). The top two lines are
+2017 and 2016. Looking at the lines, it certainly looks like HRs spiked above trend after July of 2015. This doesn't tell us anything about the ball, however. A more informative thing to look at
+would be *home runs on contact*, since how many strikeouts there are could be influencing the number of home runs. If fewer players are striking out then home runs will naturally go up. We can strip
+out all strikeouts to see what would happen if every ball was put into play.
+
+##Home Runs on Contact
+
+```{r}
+hr <- hr %>% mutate(onContact =  HR / (1 - `K%`))
+ggplot(hr, aes(x = Month, y = onContact, color = as.character(Season), group = as.character(Season))) + 
+  geom_point() + geom_line() + 
+  labs(x = "month") + scale_color_discrete(name = "Season")
+```
+This looks even starker. The gap between May 2015 and May 2017 looks like it's a little under 300, from a baseline of around 1150; an increase of around 25%! That's an enormous number; if a ball was
+put into play in May of 2017, it was 25% more likely to be hit for a home run than it was in 2015. There are of course other explanations - the composition of players isn't the same, ballparks in the league
+could have changed, weather pattersn could be changing in specific ways that influence home runs. But there are hundreds of players in the league and compisition changes slowly, and the trend increase
+appears to have begun in the middle of a season, when none of the parks had changed. But the factory location was moved in the middle of the 2015 season, and anecdotal comments from players suggest that
+the seams are generally slightly lower (though still within the strict range allowed). But even a small decrease in seam height reduces drag on the ball and causes it to carry further. The league insists
+it has run tests and nothing has changed, but it would be fun to try to collect a bunch of balls from before and after the location change and see if seam height was any different. 
+
 
 **Part 5: How Might Robot Umpires Effect The Strike Zone?**
+
+
 
