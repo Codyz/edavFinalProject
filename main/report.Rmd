@@ -123,6 +123,7 @@ clean <- function(df) {
   f <- function(val) { sub("%", "", val) }
   df[percent_cols] <- sapply(df[percent_cols], f)
   df[percent_cols] <- sapply(df[percent_cols], as.numeric)
+  
   # if a pitcher never throws a pitch
   df[percent_cols][is.na(df[percent_cols])] <- 0
   df$type[is.na(df$type)] <- "None"
@@ -138,10 +139,15 @@ joined_pitchers <- clean(joined_pitchers)
 joined_pitchers <- mutate(group_by(joined_pitchers, type), cnt = n())
 joined_pitchers <- filter(joined_pitchers, cnt >= 10)
 ```
-Now we plot number of pitches versus injury type and average fast ball throw speed versus injury type:
+Now we plot number of pitches versus injury type and average fastball throw speed versus injury type:
 ```{r}
-ggplot(joined_pitchers, aes(x=type, y=Pitches)) + geom_jitter() + coord_flip()
-ggplot(joined_pitchers, aes(x=type, y=vFA)) + geom_jitter() + coord_flip()
+ggplot(joined_pitchers, aes(x=type, y=Pitches)) + geom_jitter(color="coral4") + coord_flip() + 
+  ylab("Number of Pitches") + xlab("Injury Type") + ggtitle("Injury Type vs Number of Pitches") + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(joined_pitchers, aes(x=type, y=vFA)) + geom_jitter(color="coral3") + coord_flip() + 
+  ylab("Fastball Average Speed") + xlab("Injury Type") + ggtitle("Injury Type vs Fastball Average Speed") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 Not much jumps out in the scatterplots. It is conventional wisdom that high pitch total pitch volumes lead to injuries, but this expected result is either not visible over the course of one season or it's being swamped by other factors. There does seem to be a little bit of clustering of shoulder injuries at high pitch volume (around 3000 pitches in one season), implying that players who throw more pitches are more susceptible to shoulder injuries. 
@@ -151,8 +157,13 @@ Not much jumps out in the scatterplots. It is conventional wisdom that high pitc
 As a measure of injury severity, we look at how many days each injury lasted in the data for 2016 and 2017. We use both boxplots and scatterplots. 
 
 ```{r}
-ggplot(filter(joined, days < 180), aes(x=reorder(type, days, FUN = median), y=days)) + geom_boxplot() + coord_flip()
-ggplot(filter(joined, days < 180), aes(x=reorder(type, days, FUN = median), y=days)) + geom_jitter() + coord_flip()
+ggplot(filter(joined, days < 180), aes(x=reorder(type, days, FUN = median), y=days)) +
+  geom_boxplot(color="deepskyblue4") + coord_flip() + ylab("Recovery Time (days)") + xlab("Injury Type") +
+  ggtitle("Injury Type vs Recovery Time") + theme(plot.title = element_text(hjust = 0.5))
+
+ggplot(filter(joined, days < 180), aes(x=reorder(type, days, FUN = median), y=days)) +
+  geom_jitter(color="deepskyblue3") + coord_flip() + ylab("Recovery Time (days)") + xlab("Injury Type") +
+  ggtitle("Injury Type vs Recovery Time") + theme(plot.title = element_text(hjust = 0.5))
 ```
 By using median days values, the most severe injuries seem to be elbow Tommy John injuries, bicep injuries, and toe injuries. Elbow Tommy John injuries being the highest on this list makes sense. This kind of injury refers to a special elbow injury that involves a torn UCL, which is an extremely important elbow ligament.  
 
@@ -165,10 +176,16 @@ First we filter out every column except the 9 pitch percentage columns and plot 
 ```{r}
 percent_cols <- colnames(joined)[8:16]
 # tidy the data so we can facet on pitch types
+
 g <- gather(filter(joined_pitchers), pt, pt_pct, percent_cols)
 levels(g$pt) <- percent_cols
 g <- arrange(g, pt)
-ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30))
+
+ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", position = "dodge") +
+  theme(axis.text.x = element_text(angle=30), plot.title = element_text(hjust = 0.5)) + 
+  ylab("Number of Pitches") + xlab("Injury Type") + ggtitle("Injury Type vs Number of Pitches") +
+  scale_color_discrete() + 
+  scale_fill_discrete(name="Pitch Type", labels = c("changeup","curveball","fastball","cutter fastball","split-fingered fastball","2-seam fastball","knuckle-curve", "sinker","slider"))
 ```
 Fastballs dominate too much to clearly see what's happening with the rest of the pitches, so let's filter fastballs out and repeat the analysis:
 ```{r}
@@ -177,15 +194,18 @@ percent_cols_no_FA <- colnames(joined)[9:16]
 g <- gather(filter(joined_pitchers), pt, pt_pct, percent_cols_no_FA)
 levels(g$pt) <- percent_cols_no_FA
 g <- arrange(g, pt)
-ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt, width=0.8)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30))
+
+ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt, width=0.8)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30), plot.title = element_text(hjust = 0.5)) + 
+  ylab("Number of Pitches") + xlab("Injury Type") + 
+  ggtitle("Injury Type vs Number of Pitches (no fastball)") + scale_color_discrete() + 
+  scale_fill_discrete(name="Pitch Type", labels = c("changeup","curveball","cutter fastball","split-fingered fastball","2-seam fastball","knuckle-curve", "sinker","slider"))
 ```
 Now, we see that players with finger injuries, oblique injuries, and hip injuries threw, on average, a higher percentage of two-seam fastballs than other pitches. For players who sustained all other injury types, the average percentage of sliders thrown was highest. 
 \newpage
 
 
 **Part2: How Do Injuries Effect Power?**
-Now we will look at how different kinds of injuries affect hitters differently. Presumably some kinds of injuries hurt hitters more than others, and We will look at how different kinds of injuries affect power performance as measured by the aforementioned *SLG*. Because we're interested in the long
-term effects of injuries, we're going to be looking at a one year lag, *ignoring* the season in which the player was injured. For each player we look at he season before and seasons after the injury to look for changes. 
+Now we will look at how different kinds of injuries affect hitters differently. Presumably some kinds of injuries hurt hitters more than others, and we will look at how different kinds of injuries affect power performance as measured by the aforementioned *SLG*. Because we're interested in the long-term effects of injuries, we're going to be looking at a one year lag, *ignoring* the season in which the player was injured. For each player we look at he season before and seasons after the injury to look for changes. 
 First we prep the data:
 ```{r}
 injuries2015 <- read_csv('./data/injuries_2015.csv')
@@ -228,16 +248,20 @@ bat1 <- process(bat1, injuries2016)
 bat2 <- process(bat2, injuries2015)
 
 bat <- rbind(bat1, bat2)
+bat <- bat [!(bat$type=="None"),]
 ```
 Lastly we use a scatterplot to plot *SLG* the year before injury vs *SLG* the year after injury colored by injury type:
 ```{r}
-ggplot(bat, aes(before, after)) + geom_point(aes(color = type))
+ggplot(bat, aes(before, after)) + geom_point(aes(color = type)) + ylab("SLG After") + xlab("SLG Before") + ggtitle("Injury Change in SLG") + theme(plot.title = element_text(hjust = 0.5))
 ```
 
 Immediately, it is quite difficult to see much of anything, so instead we try a bar chart, plotting the ratios of *SLG* before and *SLG* after injury. 
 ```{r}
 bat <- mutate(bat, chng = before / after)
-ggplot(bat) + geom_bar(aes(x = type, y = chng), stat="summary") + stat_summary(aes(x = type, y = chng), fun.y = "mean") + coord_flip()
+
+ggplot(bat) + geom_bar(aes(x = type, y = chng), stat="summary", color="darkolivegreen4", fill="darkolivegreen4") + stat_summary(aes(x = type, y = chng),fun.y = "mean") + 
+  coord_flip() + ylab("SLG Change") + xlab("Injury Type") + ggtitle("Injury-Caused Difference in SLG") + 
+  theme(plot.title = element_text(hjust = 0.5))
 ```
 
 Now it's possible to see some patterns emerge. Lower body injuries seem to have the largest effect on power; ACL tears, knee injuries, toe injuries, hip, and calf injuries have the largest decreases in *SLG* the year after injury. This makes intuitive sense, since a large part of hitting involves building power from the lower half into the swing. However, some of the results are non-obvious; for example, it is remarkable that toe injuries have a larger effect on how hard a player
@@ -268,7 +292,10 @@ iAll <- iAll %>% group_by(type, was_followed) %>%
           mutate(prop = num_i / sum(num_i))
 
 iAll <- iAll %>% mutate(followed = if_else(was_followed == 0, "No", "Yes"))
-ggplot(iAll, aes(x = type, y = prop, fill = followed)) + geom_bar(stat = "identity") + theme(axis.text.x = element_text(angle=90))
+
+ggplot(iAll, aes(x = type, y = prop, fill = followed)) + geom_bar(stat = "identity") + 
+  theme(axis.text.x = element_text(angle=90), plot.title = element_text(hjust = 0.5)) + 
+  ylab("Proportion Yes/No") + xlab("Injury Type") + ggtitle("Did this injury follow a previous injury?")
 ```
 It seems that certain types on injuries are definitely more predictive of future injuries, but the caveat is that we don't have much data to work with. The numbers are not huge because finding injury data that goes back more than a few years is difficult. With a larger dataset, we could investigate if certain types of injuries could predict specific future injuries, but our slices would be too small for just three years of data.
 
@@ -289,11 +316,14 @@ levels(hr$Month) = c("Apr", "May", "Jun", "Jul", "Aug", "Sep")
 hr$Date <- as.yearmon(paste0(hr$Season, hr$Month), "%Y%b")
 hr$Date <- as.Date(hr$Date)
 ```
+
 ```{r}
 label <- function(d) { format(d, "%b") }
+
 ggplot(hr, aes(x = Month, y = HR, color = as.character(Season), group = as.character(Season))) + 
-  geom_point() + geom_line() + 
-  labs(x = "month") + scale_color_discrete(name = "Season")
+  theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_line() + 
+  labs(x = "Month", y = "Number of Home Runs") + ggtitle("Number of Home Runs per Season") +
+  scale_color_discrete(name = "Season")
 ```
 So home runs per month are definitely up year over year. (This is necessary because fewer HRS are typically hit in colder weather, and certain months have fewer games and days). The top two lines are
 2017 and 2016. Looking at the lines, it certainly looks like HRs spiked above trend after July of 2015. This doesn't tell us anything about the ball, however. A more informative thing to look at
@@ -305,8 +335,9 @@ out all strikeouts to see what would happen if every ball was put into play.
 ```{r}
 hr <- hr %>% mutate(onContact =  HR / (1 - `K%`))
 ggplot(hr, aes(x = Month, y = onContact, color = as.character(Season), group = as.character(Season))) + 
-  geom_point() + geom_line() + 
-  labs(x = "month") + scale_color_discrete(name = "Season")
+  theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_line() + 
+  labs(x = "Month", y = "Home Runs on Contact") + ggtitle("Number of Home Runs on Contact per Season") +
+  scale_color_discrete(name = "Season")
 ```
 This looks even starker. The gap between May 2015 and May 2017 looks like it's a little under 300, from a baseline of around 1150; an increase of around 25%! That's an enormous number; if a ball was
 put into play in May of 2017, it was 25% more likely to be hit for a home run than it was in 2015. There are of course other explanations - the composition of players isn't the same, ballparks in the league
