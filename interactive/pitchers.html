@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Strike Zone Visualization</title>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  </head>
+
+  <body>
+
+  <h2>Pitch Type Navigator</h2>
+
+  <div id="pitcher-select">
+    Pitcher: 
+    <select name="pitcher" id="pitcher">
+      <option value="Max Scherzer">Max Scherzer</option>
+      <option value="Clayton Kershaw">Clayton Kershaw</option>
+      <option value="Justin Verlander">Justin Verlander</option>
+      <option value="Chris Sale">Chris Sale</option>
+      <option value="Corey Kluber">Corey Kluber</option>
+    </select>
+  </div>
+
+  <div id="pitch-select">
+    Pitch Type:
+    <select name="pitch" id="pitch">
+      <option value="0">All</option>
+      <option value="FT">Two-Seam Fastball</option>
+      <option value="FF">Four Seam Fastball</option>
+      <option value="CU">Curveball</option>
+      <option value="CH">Changeup</option>
+      <option value="FC">Cutter</option>
+      <option value="PO">Pitch Out</option>
+      <option value="UN">Unknown</option>
+    </select>
+  </div>
+
+  <div id="sample-select">
+    Sample:
+    <select name="sample" id="sample">
+      <option value="1.0">100%</option>
+      <option value=".50">50%</option>
+      <option value=".25">25%</option>
+      <option value=".10">10%</option>
+    </select>
+  </div>
+
+  <script id="s1">
+
+  var w = 500;
+  var h = 500;
+  var margin = {top: 25, right: 25, bottom: 25,left: 25};
+  var innerWidth = w - margin.left - margin.right;
+  var innerHeight = h - margin.top - margin.bottom;
+
+  var svg = d3.select("body")
+	.append("svg")
+	.attr("width", w)
+	.attr("height", h);
+  //Will keep our data in a variable
+  var rows;
+
+  var xScale;
+  var yScale;
+  
+  //Load data into the rows variable
+  d3.csv("/best_pitchers_2016.csv", function(data) {
+    var cols = data.map(function(d) {
+      return {
+        px: d.px,
+        pz: d.pz,
+        des: d.type,
+        pitcher_name: d.pitcher_name,
+        pitch_type: d.pitch_type,
+        month: d.month
+      }
+    });
+
+    rows = cols;
+
+	//Make numeric variables numeric
+    rows.forEach(function(d) {
+      d.px = +d.px;
+      d.pz = +d.pz;
+    });
+	  
+    //Utility function to filter data by pitcher
+  function getFilteredData(data, pitcher, pitch, sample) {
+    _data = data.slice(0);
+
+    if (pitcher) {
+      _data = _data.filter(d => d.pitcher_name === pitcher);
+      console.log(_data.length)
+    }
+
+    if (pitch) {
+      _data = _data.filter(d => d.pitch_type === pitch);
+      console.log(_data.length);
+    }
+    
+    // sample 10%, too much data
+    _data = _data.filter(d => Math.random() < sample);
+
+    _data.forEach((d, i) => {
+      if (i % 1000 === 0) console.log(d);
+      d.px = +d.px;
+      d.pz = +d.pz;
+    });
+
+
+    return _data;
+  };
+
+
+  function updateData(rows, pitcherFilter, pitchFilter, sample) {
+    var _data = getFilteredData(rows, pitcherFilter, pitchFilter, sample);
+    console.log(_data.length);
+
+    xScale = d3.scaleLinear()
+      .domain([-6, 6])
+      .range([0, innerWidth])
+    
+    yScale = d3.scaleLinear()
+      .domain([-6, 6])
+      .range([innerHeight, 0])
+
+    function handleMouseOver(d, i) {
+      svg.append("text")
+        .attr("id", "tex")
+        .attr("x", function() { 
+          return xScale(d.px) + (margin.left);
+        })
+        .attr("y", function() { 
+          return yScale(d.pz) + (margin.top);  
+          })
+        .text(d.pitch_type);
+      }
+
+      function handleMouseOut(d, i) {
+        d3.select("#tex").remove();  
+      };
+    
+    d3.selectAll('circle').remove();
+
+    var dots = svg.selectAll("circle").data(_data);
+
+    dots.enter().append("circle")
+      .attr("class", "pitch")
+      .attr("transform", `translate (${margin.left}, ${margin.top})`)
+      .attr("cx", d => xScale(d.px))
+      .attr("cy", d => yScale(d.pz))             
+      .attr("r", 5)
+      .attr("fill",d => getColor(d.des))
+    .attr('fill-opacity', 0.3)
+    .on("mouseover", handleMouseOver)
+      .on("mouseout", handleMouseOut);
+
+    d3.selectAll('rect').remove();
+
+    svg.append('rect')
+        .attr("x", xScale(-0.70)) // strike zone is 17 inches wide
+        .attr("y", yScale(1.5) - 50)
+        .attr("class", "zone")
+        //.attr("transform", `translate (${margin.left}, ${margin.top})`)
+        .attr("width", xScale(0.83) - xScale(-0.83))
+        .attr("height", yScale(1.5) - yScale(3.5))
+        .style("fill", "none")
+        .style("stroke", "black");
+
+    function getColor(des) {
+  	   if (des === "B") return "red";
+  	   return "blue";
+    };
+
+  };
+
+  $(document).ready(function () {
+    console.log('Setting listeners');
+    $("select").change(function() {
+      var pitcher = $('#pitcher').val();
+      var pitch = $('#pitch').val();
+      var sample = $('#sample').val();
+      sample = parseFloat(sample);
+
+      if (pitch === "0") pitch = null;
+
+      console.log($(this).attr('name'), " changed");
+      console.log($(this).val(), " changed");
+
+      updateData(rows, pitcher, pitch, sample);
+    });
+  });
+});
+  
+  </script>
+
+  </body>
+
+</html>
