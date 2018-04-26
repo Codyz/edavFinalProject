@@ -14,7 +14,7 @@ knitr::opts_chunk$set(warning = F,
 
 # Introduction
 
-Baseball, sometimes referred to as the Great American Pastime, is one of the most popular sports in America. There is an immense amount of baseball data freely available for analysis and is effectively a statistician’s playground. 
+Baseball, sometimes referred to as the Great American Pastime, is one of the most popular sports in America. There is an immense amount of baseball data freely available for analysis and is effectively a statistician's playground. 
 
 We chose the topic of baseball for our final project for a few reasons. One of our group members is involved in fantasy baseball, and we thought that exploring baseball data in-depth would probably help him in future fantasy bracket player selections. We also hoped that this analysis, or a similar analysis, would be potentially applicable to other sports including but not limited to basketball and American football. Lastly we wanted to get insight into a core element of American pop culture, and look into some interesting questions such as injuries and home runs trends.
 
@@ -100,6 +100,44 @@ There are plenty of monthly stats here, and each column represents a different a
 
 # Analysis of Data Quality
 
+Fortunately there is near complete public availability of the data we're exploring, and our scraping service ran without error for all the necessary data. There are no missing data in any of the injuries, batters, or homeruns sets, and the NA values in the Pitchers data all fall under the "pitch frequency" columns. 
+
+While these NA values represent 0% frequency of that type of pitch (instead of a true NA), it is still worthwhile to visualize their occurences across pitch-types to further understand pitcher preferences.
+```{r}
+library(extracat)
+pitches_2015 <- read_csv('./data/Pitchers2015.csv')
+injuries_2016 <- read_csv('./data/injuries_2016.csv')
+
+joined1 <- merge(injuries_2016, pitches_2015, by.x = "name", by.y = "name", all.y = T)
+joined1$year <- '2016'
+
+pitches_2016 <- read_csv('./data/Pitchers2016.csv')
+injuries_2017 <- read_csv('./data/injuries_2017.csv')
+
+joined2 <- merge(injuries_2017, pitches_2016, by.x = "name", by.y = "name", all.y = T)
+joined2$year <- '2017'
+
+joinedQA <- rbind(joined1, joined2)
+joined_pitchers <- filter(joinedQA, pos == "RP" | pos == "SP")
+
+visna(joined_pitchers)
+```
+
+
+This graphic shows how different pitchers exhibit patterns of pitch-type specializations. Knuckle-curves (KC), splitters (FS), and sinkers (SI) are the most-avoided pitches in our set. This falls in line with the notion that those are some of the most difficult and physically taxing pitch-types. It is worth keeping this in mind for later analysis of injury by pitch type; Knuckle-curves, splitters, and sinkers have imbalanced representation in this dataset.
+
+We can also see evidence of specialization for each row of data (pitcher), in that most pitchers have a few types that they will never throw. This makes sense because teams benefit from having "pointy"-skilled pitchers, as opposed to many jacks of all trade/masters of none.
+
+
+The other data quality issue to address is one brought on by our preprocessing methods. Some injuries sustained by a player affect more than one part of the body, and in these cases we chose only one of the listed body parts to simplify our analysis. In an effort to "check ourselves", we use a bar plot to show the frequencies of injuries that affect 1, 2, and 3 parts of the body in our dataset.
+```{r}
+extract_injury_count <- function(val) { length(strsplit(val, "/")[[1]]) }
+joinedQA$num_injuries <-sapply(joinedQA$type, extract_injury_count)
+ggplot(joinedQA, aes(x=num_injuries)) + geom_bar(color="darkblue", fill="lightblue") + xlab("Number of Body Parts Affected by Injury") + ylab("Count in Dataset") + ggtitle("How Often Do Injuries Affect >1 Body Part?") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+Most injuries only affect 1 part of the body, which means not too much information is cut out from the injuries with 2+ affected parts. Our preprocessing method of choosing the most-severe injury when there is 2 or 3 listed will not lead to misleading results.  
+
 # Main Analysis
 
 We start by importing the necessary libraries for data processing and plotting:
@@ -139,6 +177,7 @@ joined2$year <- '2017'
 joined <- rbind(joined1, joined2)
 
 joined_pitchers <- filter(joined, pos == "RP" | pos == "SP")
+
 ```
 
 Some players are listed with multiple injuries, encoded as Injury1/Injury2/... In those cases the first injury is the most serious, so we will only consider the first listed injury per player for this analysis:
