@@ -2,9 +2,9 @@
 title: "Baseball Data Visualization"
 author: "Cody Zupnick, Max Mattioli, Priya Medberry, and Mohammad Radiyat"
 output:
+  pdf_document: default
   html_document:
     fig_caption: yes
-  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -57,6 +57,7 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(zoo)
+library(ggthemes)
 pitches_2015 <- read_csv('./data/Pitchers2015.csv')
 head(pitches_2015)
 ```
@@ -210,7 +211,7 @@ joined_pitchers <- mutate(group_by(joined_pitchers, type), cnt = n())
 joined_pitchers <- filter(joined_pitchers, cnt >= 10)
 ```
 
-Now we plot number of pitches versus injury type and average fastball throw speed versus injury type:
+Now we plot number of pitches in the previous season versus injury type and average fastball throw speed versus injury type:
 ```{r}
 ggplot(joined_pitchers, aes(x=type, y=Pitches)) + geom_jitter(color="coral4") + coord_flip() + 
   ylab("Number of Pitches") + xlab("Injury Type") + ggtitle("Injury Type vs Number of Pitches") + 
@@ -256,7 +257,7 @@ g <- arrange(g, pt)
 ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt)) + geom_bar(stat="summary", position = "dodge") +
   theme(axis.text.x = element_text(angle=30), plot.title = element_text(hjust = 0.5)) + 
   ylab("Number of Pitches") + xlab("Injury Type") + ggtitle("Injury Type vs Number of Pitches") +
-  scale_color_discrete() + 
+  scale_color_colorblind() + 
   scale_fill_discrete(name="Pitch Type", labels = c("changeup","curveball","fastball","cutter fastball","split-fingered fastball","2-seam fastball","knuckle-curve", "sinker","slider"))
 ```
 
@@ -270,7 +271,7 @@ g <- arrange(g, pt)
 
 ggplot(g, aes(x = type, y = pt_pct, fill = pt, order = pt, width=0.8)) + geom_bar(stat="summary", position = "dodge") + theme(axis.text.x = element_text(angle=30), plot.title = element_text(hjust = 0.5)) + 
   ylab("Number of Pitches") + xlab("Injury Type") + 
-  ggtitle("Injury Type vs Number of Pitches (no fastball)") + scale_color_discrete() + 
+  ggtitle("Injury Type vs Number of Pitches (no fastball)") + scale_color_colorblind() + 
   scale_fill_discrete(name="Pitch Type", labels = c("changeup","curveball","cutter fastball","split-fingered fastball","2-seam fastball","knuckle-curve", "sinker","slider"))
 ```
 
@@ -336,7 +337,7 @@ Immediately, it is quite difficult to see much of anything, so instead we try a 
 ```{r}
 bat <- mutate(bat, chng = before / after)
 
-ggplot(bat) + geom_bar(aes(x = type, y = chng), stat="summary", color="darkolivegreen4", fill="darkolivegreen4") + stat_summary(aes(x = type, y = chng),fun.y = "mean") + 
+ggplot(bat) + geom_bar(aes(x = type, y = chng), stat="summary", color="seagreen4", fill="seagreen4") + stat_summary(aes(x = type, y = chng),fun.y = "mean") + 
   coord_flip() + ylab("SLG Change") + xlab("Injury Type") + ggtitle("Injury-Caused Difference in SLG") + 
   theme(plot.title = element_text(hjust = 0.5))
 ```
@@ -373,9 +374,10 @@ iAll <- iAll %>% group_by(type, was_followed) %>%
 
 iAll <- iAll %>% mutate(followed = if_else(was_followed == 0, "No", "Yes"))
 
-ggplot(iAll, aes(x = type, y = prop, fill = followed)) + geom_bar(stat = "identity") + 
+ggplot(iAll, aes(x = type, y = prop, fill = followed)) + geom_bar(stat = "identity") +
   theme(axis.text.x = element_text(angle=90), plot.title = element_text(hjust = 0.5)) + 
-  ylab("Proportion Yes/No") + xlab("Injury Type") + ggtitle("Did another injury happen after this injury?")
+  ylab("Proportion Yes/No") + xlab("Injury Type") + ggtitle("Did another injury happen after this injury?")+
+  scale_color_colorblind()
 ```
 
 It seems that certain types on injuries are definitely more predictive of future injuries, but the caveat is that we don't have much data to work with. The numbers are not huge because finding injury data that goes back more than a few years is difficult. With a larger dataset, we could investigate if certain types of injuries could predict specific future injuries, but our slices would be too small for just three years of data.
@@ -402,17 +404,16 @@ hr$Date <- as.Date(hr$Date)
 ```{r}
 label <- function(d) { format(d, "%b") }
 
-ggplot(hr, aes(x = Month, y = HR, color = as.character(Season), group = as.character(Season))) + 
-  theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_line() + 
+ggplot(hr, aes(x = Month, y = HR, color = as.character(Season), group = as.character(Season))) + theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_line() + 
   labs(x = "Month", y = "Number of Home Runs") + ggtitle("Number of Home Runs per Season") +
-  scale_color_discrete(name = "Season")
+  scale_color_colorblind(name = "Season")
 ```
 
 The first thing to note is how different and consistent the trends are for home runs across months. Fewer home runs are hit in colder months than warmer months. The reason for this is that colder weather makes air more dense, and denser air creates more drag on flying balls than thinner air. Also, certain months have fewer games and thus have fewer expected number of home runs. 
 
 As for yearly trends, clearly total home runs are up after 2015. The top two time series lines are for 2016 and 2017. Looking at the lines, it certainly looks like home runs spiked above the previous trend after July of 2015. This doesn't tell us anything about the ball, however. 
 
-A more informative thing to look at would be *home runs on contact*, since how many strikeouts there are could be influencing the number of home runs. If fewer players are striking out, then home runs will naturally go up. We can strip out all strikeouts to see what would happen if every ball was put into play.
+A more informative thing to look at would be *home runs on contact*, which is a measurement of home run rate as a percentage of contact (contact meaning at-bats that weren't strikeouts) since how many strikeouts there are could be influencing the number of home runs. If fewer players are striking out, then home runs will naturally go up. We can strip out all strikeouts to see what would happen if every ball was put into play.
 
 #### Home Runs on Contact
 
@@ -422,15 +423,49 @@ levels(hr$Month) = c("Apr", "May", "Jun", "Jul", "Aug", "Sep")
 ggplot(hr, aes(x = Month, y = onContact, color = as.character(Season), group = as.character(Season))) + 
   theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_line() + 
   labs(x = "Month", y = "Home Runs on Contact") + ggtitle("Number of Home Runs on Contact per Season") +
-  scale_color_discrete(name = "Season")
+  scale_color_colorblind(name = "Season")
 ```
 
-Now, the differce looks even starker. The gap between May 2015 and May 2017 looks like it's a little under 300, from a baseline of around 1150, which corresponds to an increase of around 25%. That's an enormous number given the context; if a ball were put into play in May of 2017, it was 25% more likely to be hit for a home run than it was in 2015. There are of course other explanations - the composition of players isn't the same, ballparks in the league  could have changed, or weather patterns could be changing in specific ways that influence home runs. But there are hundreds of players in the league and compisition changes slowly, and the trend increase appears to have begun in the middle of a season, when none of the parks had changed. 
+Now, the difference looks even starker. The gap between May 2015 and May 2017 looks like it's a little under 300, from a baseline of around 1150, which corresponds to an increase of around 25%. That's an enormous number given the context; if a ball were put into play in May of 2017, it was 25% more likely to be hit for a home run than it was in 2015. There are of course other explanations - the composition of players isn't the same, ballparks in the league  could have changed, or weather patterns could be changing in specific ways that influence home runs. But there are hundreds of players in the league and compisition changes slowly, and the trend increase appears to have begun in the middle of a season, when none of the parks had changed. 
 
 Interestingly, one small change was made; the location of a baseball manufacturing factory was changed in the middle of the 2015 season, and anecdotal comments from players suggest that
 the seams of the ball are generally slightly lower (though still within the strict range allowed by the MLB). Even a small decrease in seam height reduces drag on the ball and causes it to carry further. The league insists it has run tests and nothing has changed, but it may be worth trying to collect a set of balls from before and after the location change and see if seam height was is different. 
 
-**Part 5: How Might Robot Umpires Effect The Strike Zone?**
+**Part 5: How Might Robot Umpires Affect The Strike Zone?**
 
 
+
+# Executive Summary
+Since its inception, baseball has maintained a position of fond reverence in American culture, and from an analytical perspective is rich with potential, so much so that books, movies, even businesses have been devoted to the use of statistical techniques to inform decisions about the sport. Baseball is somewhat of an isolated team sport - every player is working towards a team goal, but by nature of the game, their contributions to the team goal are largely individual, which enables ease of analysis. Our report squares its aim on some of the lesser-analyzed areas supporting the game, such as the parameters surrounding pitcher injuries, how slightly changing the design of the ball may have caused an increase in home runs, and finally what would happen if we replaced umpires (human referees) with robots.
+
+In our analysis of pitcher injuries, we didn't find any clear relationship between between injury type and number of pitches or average pitch speed. We were able to determine that the body parts most commonly injured were the arm, elbow, and shoulder as shown in the plot below.
+```{r}
+ggplot(filter(joined, days < 180), aes(x=reorder(type, days, FUN = median), y=days)) +
+  geom_boxplot(color="deepskyblue4") + geom_jitter(color="deepskyblue4", alpha = 0.5) + coord_flip() +
+  ylab("Recovery Time (days)") + xlab("Injury Type") + ggtitle("Injury Type vs Recovery Time") + theme(plot.title = element_text(hjust = 0.5))
+
+```
+The dots represent individual injuries, while the boxplot shows the median and spread of recovery times for each location-based injury. The plot is ordered from longest recovery time at the top to shortest recovery time at the bottom. The Elbow Tommy John injury, also known as tearing the UCL (located in the elbow) is the most severe injury in terms of recovery time - so severe it usually renders the pitcher unable to play for the rest of the season. Given that pitchers use their arms more than the other parts of their body, it makes sense that the most common injuries are located in the shoulder/elbow/arm region of the body. 
+
+Analysis of pitch type and injury showed that players with injuries located on their fingers, obliques, and hips threw more two-seam fastballs than other types of pitches. For all other injury locations, the slider was the most commonly thrown pitch type. Examination of a pitcher's offensive performance (how well they hit) showed that on the whole, lower body injuries caused a greater decrease in offensive performance than upper body injuries. Finally, it seems that certain injuries are more likely to recur or cause new injuries to the same location, however these results varied based on location with no general trends. 
+
+Next we explored the theory that the 2015 change in the location of the baseball-manufacturer may have caused an increase in the number of home runs hit in following seasons.
+```{r}
+ggplot(hr, aes(x = Month, y = onContact, color = as.character(Season), group = as.character(Season))) + 
+  theme(plot.title = element_text(hjust = 0.5)) + geom_point() + geom_line() + 
+  labs(x = "Month", y = "Home Runs on Contact") + ggtitle("Number of Home Runs on Contact per Season") +
+  scale_color_colorblind(name = "Season")
+```
+No matter which way we looked at the data, two observations held true: more home runs are being hit every year, and more home runs are hit in warmer weather versus colder weather, as shown by the plot above. In fact, there appears to be a nearly 30% increase in homeruns hit during August 2017 compared to August 2015.
+
+Finally, our interactive analysis of how robot umpires might affect the strike zone yielded a few interesting results. *CODY PUT BLURB HERE*
+
+# Conclusion
+In this report we assessed all the parameters surrounding pitcher injuries, highlighted overall home run trends in recent years, and took a predictive look at how robot empires could affect the strike zone and therefore the future of the game. 
+
+As is common, we were limited by the scope of data that was readily accessible on the internet, but our assessment of data quality indicated that there were no inconsistencies or glaring gaps in the data that might have negatively affected our results. But, while the data we were able to find was of high quality, we still wish we had more data to work with, especially for our injury analysis. We are cognizant that extensive injury reports are a more recent trend, and becoming more popular especially with media attention on the intersection between sports and player health, but we were only able to find data going a few years back, which limited the scope of our inquiry. Furthermore, many of our injury graphs mention parts of the body twice (such as Knee ACL vs Knee) where one reference is more specific than the other, demonstrating a somewhat confusing lack of consistency (for example, does this mean that "Knee" references any other non-ACL knee injuries). We think the quality of injury data will improve as the sport increases its attention toward injuries.
+
+In the future, *CODY ADD BLURB*
+
+Aside from the individual conclusions revealed throughout our report, we gained an understanding of the importance of letting the data drive the direction of our analysis and drawing insight from the data instead of relying on our opinions. For example, in our evaluation of pitch type versus injury type, we initially found that fastballs were highly correlated with every injury, which makes sense since it is the most common type of pitch. Once we removed fastball from the data, subtler trends became more pronounced such as the correlation between the two-seam fastball and finger/hip/oblique injuries. However, we also learned that trends are merely indicative, meaning they don't demonstrate a clear cause-effect relationship. In an ideal world, if a player gets injured, it's because they over-used a body part, but accidents happen and they happen frequently. And that's the price tag that comes with using real data: sometimes the trends don't explain or predict what you see, but with them you can get a bit closer to understanding.
 
