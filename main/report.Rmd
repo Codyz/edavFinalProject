@@ -2,9 +2,9 @@
 title: "Baseball Data Visualization"
 author: "Cody Zupnick, Max Mattioli, Priya Medberry, and Mohammad Radiyat"
 output:
-  pdf_document: default
   html_document:
     fig_caption: yes
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -36,7 +36,7 @@ We had a lot of questions that we thought of, and have listed these below:
 * How do different kinds of injuries affect hitting power?
 * How does likelihood of future injury change with different kinds of injuries?
 * How did a ball manufacturing change affect number of home runs?
-* How may a robot umpire affect the strike zone?
+* How do different promininent pitchers use their pitches?
 
 Our group members are:
 
@@ -224,7 +224,7 @@ ggplot(joined_pitchers, aes(x=type, y=vFA)) + geom_jitter(color="coral3") + coor
 
 Not much jumps out in the scatterplots. It is conventional wisdom that high pitch total pitch volumes lead to injuries, but this expected result is either not visible over the course of one season or it's being swamped by other factors. There does seem to be a little bit of clustering of shoulder injuries at high pitch volume (around 3000 pitches in one season), implying that players who throw more pitches are more susceptible to shoulder injuries. 
 
-#### Injury Type
+##### Injury Type
 
 As a measure of injury severity, we look at how many days each injury lasted in the data for 2016 and 2017. We use both boxplots and scatterplots. 
 
@@ -242,7 +242,7 @@ By using median days values, the most severe injuries seem to be elbow Tommy Joh
 
 The median injury length values may be important, but arguably more important is frequency of injuries. The scatterplot indicates that injuries pitching injuries (shoulder, elbow, and arm) are among the most frequent. 
 
-#### Types of Pitches And Injuries
+##### Types of Pitches And Injuries
 Since it seems that pitching injuries are quite frequent, it may be worth exploring pitching injuries in-depth. We look at whether players who throw certain types of pitches are more susceptible to getting injured, and whether certain kinds of pitches lead to specific types on injuries. This has been a holy grail of baseball research and is still hotly debated. While it is unlikely that anything will be settled without modeling, some trends may be visible using exploratory analysis. 
 
 First we filter out every column except the 9 pitch percentage columns and plot the various kinds of injuries vs average pitch type percentage across all players with those injuries:
@@ -279,7 +279,7 @@ Now, we see that players with finger injuries, oblique injuries, and hip injurie
 \newpage
 
 
-**Part2: How Do Injuries Effect Power?**
+**Part 2: How Do Injuries Effect Power?**
 
 Now we will look at how different kinds of injuries affect hitters differently. Presumably some kinds of injuries hurt hitters more than others, and we will look at how different kinds of injuries affect power performance as measured by the aforementioned *SLG*. Because we're interested in the long-term effects of injuries, we're going to be looking at a one year lag, *ignoring* the season in which the player was injured. For each player we look at he season before and seasons after the injury to look for changes. 
 First we prep the data:
@@ -415,7 +415,7 @@ As for yearly trends, clearly total home runs are up after 2015. The top two tim
 
 A more informative thing to look at would be *home runs on contact*, which is a measurement of home run rate as a percentage of contact (contact meaning at-bats that weren't strikeouts) since how many strikeouts there are could be influencing the number of home runs. If fewer players are striking out, then home runs will naturally go up. We can strip out all strikeouts to see what would happen if every ball was put into play.
 
-#### Home Runs on Contact
+##### Home Runs on Contact
 
 ```{r}
 hr <- hr %>% mutate(onContact =  HR / (1 - `K%`))
@@ -431,10 +431,8 @@ Now, the difference looks even starker. The gap between May 2015 and May 2017 lo
 Interestingly, one small change was made; the location of a baseball manufacturing factory was changed in the middle of the 2015 season, and anecdotal comments from players suggest that
 the seams of the ball are generally slightly lower (though still within the strict range allowed by the MLB). Even a small decrease in seam height reduces drag on the ball and causes it to carry further. The league insists it has run tests and nothing has changed, but it may be worth trying to collect a set of balls from before and after the location change and see if seam height was is different. 
 
-
-
 # Executive Summary
-Since its inception, baseball has maintained a position of fond reverence in American culture, and from an analytical perspective is rich with potential, so much so that books, movies, even businesses have been devoted to the use of statistical techniques to inform decisions about the sport. Baseball is somewhat of an isolated team sport - every player is working towards a team goal, but by nature of the game, their contributions to the team goal are largely individual, which enables ease of analysis. Our report squares its aim on some of the lesser-analyzed areas supporting the game, such as the parameters surrounding pitcher injuries, how slightly changing the design of the ball may have caused an increase in home runs, and finally what would happen if we replaced umpires (human referees) with robots.
+Since its inception, baseball has maintained a position of fond reverence in American culture, and from an analytical perspective is rich with potential, so much so that books, movies, even businesses have been devoted to the use of statistical techniques to inform decisions about the sport. Baseball is somewhat of an isolated team sport - every player is working towards a team goal, but by nature of the game, their contributions to the team goal are largely individual, which enables ease of analysis. Our report squares its aim on some of the lesser-analyzed areas supporting the game, such as the parameters surrounding pitcher injuries, how slightly changing the design of the ball may have caused an increase in home runs, and finally how do prominent or successful pitchers use different pitch types (see component on interactive part below).
 
 In our analysis of pitcher injuries, we didn't find any clear relationship between between injury type and number of pitches or average pitch speed. We were able to determine that the body parts most commonly injured were the arm, elbow, and shoulder as shown in the plot below.
 ```{r}
@@ -456,17 +454,16 @@ ggplot(hr, aes(x = Month, y = onContact, color = as.character(Season), group = a
 ```
 No matter which way we looked at the data, two observations held true: more home runs are being hit every year, and more home runs are hit in warmer weather versus colder weather, as shown by the plot above. In fact, there appears to be a nearly 30% increase in homeruns hit during August 2017 compared to August 2015.
 
-Finally, our interactive was a tool to explore how different pitchers use their various pitches. It lets you plot by pitch type for five of the best pitchers in baseball, colored by balls and strikes. So you can see that Max Scherzer's sliders tend to break away from righthanders, and that he gets a lot of swinging strikes on them out of the zone. You can also see how different pitchers use place them near
-different parts of the plate. We'd like to include all pitchers across many years, but pitch data is enormous and it would require a real backend API, since loading a season's worth of data into the browser
-for more than a few pitchers is a non-starter. But that will probably be the next feature we add. 
+# Interactive Component
+
+Finally, our interactive (see it [here](http://vigorous-yonath-d9785d.bitballoon.com/)) was a tool to explore how different pitchers use their various pitches. It lets you plot by pitch type for five of the best pitchers in baseball, colored by balls and strikes. So you can see that Max Scherzer's sliders tend to break away from righthanders, and that he gets a lot of swinging strikes on them out of the zone, or that Justin Verlander throws more changeups than Clayton Kershaw, and most of his changeups hang at the bottom of the strike zone. You can also see how different pitchers use place them near different parts of the plate. We'd like to include all pitchers across many years, but pitch data is enormous and it would require a real backend API, since loading a season's worth of data into the browser for more than a few pitchers is a non-starter. But that will probably be the next feature we add. 
 
 # Conclusion
 In this report we assessed all the parameters surrounding pitcher injuries, highlighted overall home run trends in recent years, and took a predictive look at how robot empires could affect the strike zone and therefore the future of the game. 
 
 As is common, we were limited by the scope of data that was readily accessible on the internet, but our assessment of data quality indicated that there were no inconsistencies or glaring gaps in the data that might have negatively affected our results. But, while the data we were able to find was of high quality, we still wish we had more data to work with, especially for our injury analysis. We are cognizant that extensive injury reports are a more recent trend, and becoming more popular especially with media attention on the intersection between sports and player health, but we were only able to find data going a few years back, which limited the scope of our inquiry. Furthermore, many of our injury graphs mention parts of the body twice (such as Knee ACL vs Knee) where one reference is more specific than the other, demonstrating a somewhat confusing lack of consistency (for example, does this mean that "Knee" references any other non-ACL knee injuries). We think the quality of injury data will improve as the sport increases its attention toward injuries.
 
-In the future, we'd love to get our hands on more fine grained injury data across more seasons. Unfortunately, exploratory data analysis is incapable of answering many injury questions of interest. There are lots of interaction effects happening in baseball (for instance, more pitches might cause more injuries all things equal, but healthier pitchers will tend to throw more than unhealthy ones), and many of
-the relationships can only be teased out through modeling. But exploratory visualization is a great place to start looking for questions to ask. The data on lower body injuries for hitters was interesting, and that's another thing we'd like to explore further. See it here [link.](http://vigorous-yonath-d9785d.bitballoon.com/)
+In the future, we'd love to get our hands on more fine grained injury data across more seasons. Unfortunately, exploratory data analysis is incapable of answering many injury questions of interest. There are lots of interaction effects happening in baseball (for instance, more pitches might cause more injuries all things equal, but healthier pitchers will tend to throw more than unhealthy ones), and many of the relationships can only be teased out through modeling. But exploratory visualization is a great place to start looking for questions to ask. The data on lower body injuries for hitters was interesting, and that's another thing we'd like to explore further. See it [here.](http://vigorous-yonath-d9785d.bitballoon.com/)
 
 Aside from the individual conclusions revealed throughout our report, we gained an understanding of the importance of letting the data drive the direction of our analysis and drawing insight from the data instead of relying on our opinions. For example, in our evaluation of pitch type versus injury type, we initially found that fastballs were highly correlated with every injury, which makes sense since it is the most common type of pitch. Once we removed fastball from the data, subtler trends became more pronounced such as the correlation between the two-seam fastball and finger/hip/oblique injuries. However, we also learned that trends are merely indicative, meaning they don't demonstrate a clear cause-effect relationship. In an ideal world, if a player gets injured, it's because they over-used a body part, but accidents happen and they happen frequently. And that's the price tag that comes with using real data: sometimes the trends don't explain or predict what you see, but with them you can get a bit closer to understanding.
 
