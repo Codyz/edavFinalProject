@@ -15,5 +15,6 @@ purrr
 stringr
 forcats
 zoo
+ggthemes
 extracat
 bindrcpp

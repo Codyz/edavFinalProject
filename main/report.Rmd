@@ -431,8 +431,6 @@ Now, the difference looks even starker. The gap between May 2015 and May 2017 lo
 Interestingly, one small change was made; the location of a baseball manufacturing factory was changed in the middle of the 2015 season, and anecdotal comments from players suggest that
 the seams of the ball are generally slightly lower (though still within the strict range allowed by the MLB). Even a small decrease in seam height reduces drag on the ball and causes it to carry further. The league insists it has run tests and nothing has changed, but it may be worth trying to collect a set of balls from before and after the location change and see if seam height was is different. 
 
-**Part 5: How Might Robot Umpires Affect The Strike Zone?**
-
 
 
 # Executive Summary
@@ -458,14 +456,17 @@ ggplot(hr, aes(x = Month, y = onContact, color = as.character(Season), group = a
 ```
 No matter which way we looked at the data, two observations held true: more home runs are being hit every year, and more home runs are hit in warmer weather versus colder weather, as shown by the plot above. In fact, there appears to be a nearly 30% increase in homeruns hit during August 2017 compared to August 2015.
 
-Finally, our interactive analysis of how robot umpires might affect the strike zone yielded a few interesting results. *CODY PUT BLURB HERE*
+Finally, our interactive was a tool to explore how different pitchers use their various pitches. It lets you plot by pitch type for five of the best pitchers in baseball, colored by balls and strikes. So you can see that Max Scherzer's sliders tend to break away from righthanders, and that he gets a lot of swinging strikes on them out of the zone. You can also see how different pitchers use place them near
+different parts of the plate. We'd like to include all pitchers across many years, but pitch data is enormous and it would require a real backend API, since loading a season's worth of data into the browser
+for more than a few pitchers is a non-starter. But that will probably be the next feature we add. 
 
 # Conclusion
 In this report we assessed all the parameters surrounding pitcher injuries, highlighted overall home run trends in recent years, and took a predictive look at how robot empires could affect the strike zone and therefore the future of the game. 
 
 As is common, we were limited by the scope of data that was readily accessible on the internet, but our assessment of data quality indicated that there were no inconsistencies or glaring gaps in the data that might have negatively affected our results. But, while the data we were able to find was of high quality, we still wish we had more data to work with, especially for our injury analysis. We are cognizant that extensive injury reports are a more recent trend, and becoming more popular especially with media attention on the intersection between sports and player health, but we were only able to find data going a few years back, which limited the scope of our inquiry. Furthermore, many of our injury graphs mention parts of the body twice (such as Knee ACL vs Knee) where one reference is more specific than the other, demonstrating a somewhat confusing lack of consistency (for example, does this mean that "Knee" references any other non-ACL knee injuries). We think the quality of injury data will improve as the sport increases its attention toward injuries.
 
-In the future, *CODY ADD BLURB*
+In the future, we'd love to get our hands on more fine grained injury data across more seasons. Unfortunately, exploratory data analysis is incapable of answering many injury questions of interest. There are lots of interaction effects happening in baseball (for instance, more pitches might cause more injuries all things equal, but healthier pitchers will tend to throw more than unhealthy ones), and many of
+the relationships can only be teased out through modeling. But exploratory visualization is a great place to start looking for questions to ask. The data on lower body injuries for hitters was interesting, and that's another thing we'd like to explore further. See it here [link.](http://vigorous-yonath-d9785d.bitballoon.com/)
 
 Aside from the individual conclusions revealed throughout our report, we gained an understanding of the importance of letting the data drive the direction of our analysis and drawing insight from the data instead of relying on our opinions. For example, in our evaluation of pitch type versus injury type, we initially found that fastballs were highly correlated with every injury, which makes sense since it is the most common type of pitch. Once we removed fastball from the data, subtler trends became more pronounced such as the correlation between the two-seam fastball and finger/hip/oblique injuries. However, we also learned that trends are merely indicative, meaning they don't demonstrate a clear cause-effect relationship. In an ideal world, if a player gets injured, it's because they over-used a body part, but accidents happen and they happen frequently. And that's the price tag that comes with using real data: sometimes the trends don't explain or predict what you see, but with them you can get a bit closer to understanding.
 
